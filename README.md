@@ -28,6 +28,8 @@ Load `iwa-ext` as an unpacked extension. It keeps an offscreen document and plan
 | `serve.mjs` | Server on port 8807 |
 | `index.html` | The four tabs |
 | `WASMHolePunch/` | Guest sources |
+| `ChromeErrStates/` | Catalog, loader, deputy, and harness sources the guest links |
+| `quickjs/` | quickjs-ng sources for `quickjs.c`, `dtoa.c`, `libunicode.c`, and `libregexp.c` |
 | `WASMKV/` | Script store sources |
 | `ng/` | Binding generators |
 | `loader.js` | Wasm host used to instantiate the harness |
