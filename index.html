@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Bruja Browser Test Framework</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #202124; color: #e8eaed; font: 14px/1.4 ui-sans-serif, Segoe UI, sans-serif; }
+    header { display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 16px; background: #292a2d; border-bottom: 1px solid #3c4043; }
+    header strong { font-size: 16px; letter-spacing: 0.02em; }
+    nav { display: flex; gap: 4px; }
+    nav button { background: transparent; color: #9aa0a6; border-radius: 8px; }
+    nav button.on { background: #3c4043; color: #e8eaed; }
+    header .spacer { flex: 1; }
+    button { background: #8ab4f8; color: #202124; border: 0; border-radius: 16px; padding: 6px 16px; font-weight: 600; cursor: pointer; }
+    button:disabled { opacity: 0.5; }
+    .view { display: none; height: calc(100% - 48px); }
+    .view.on { display: grid; }
+    #develop { grid-template-columns: 280px 1fr 1fr; }
+    #test { grid-template-columns: 240px 1fr 1fr; grid-template-rows: 1fr 180px; }
+    #test .editors { grid-column: 2; min-height: 0; display: flex; flex-direction: column; padding: 12px; }
+    #test .result { grid-column: 3; grid-row: 1; }
+    #test .monitors { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 0 12px 12px; min-height: 0; }
+    #monitor { grid-template-columns: 1fr 1fr 1fr; }
+    #debug { grid-template-columns: 180px 1fr; }
+    #debug .tools button { display: block; width: 100%; text-align: left; margin: 0 0 4px; background: #3c4043; color: #e8eaed; }
+    #debug .tools button.on { background: #8ab4f8; color: #202124; }
+    #debug .panel { display: none; min-height: 0; padding: 12px; }
+    #debug .panel.on { display: flex; }
+    #debug .split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-height: 0; flex: 1; }
+    #debug input, #debug .console-input { background: #171717; color: #e8eaed; border: 1px solid #3c4043; border-radius: 6px; padding: 8px; font: 13px/1.3 ui-monospace, Consolas, monospace; }
+    #mojo-list, #blink-list { overflow: auto; margin: 0; }
+    .pager { display: flex; gap: 8px; align-items: center; margin: 6px 0; color: #9aa0a6; font-size: 12px; }
+    .pager button { width: auto; margin: 0; }
+    #mojo-list .item, #blink-list .item { display: flex; align-items: stretch; }
+    #mojo-list button, #blink-list button { display: block; width: 100%; text-align: left; margin: 0; padding: 4px 8px; background: transparent; color: #e8eaed; border-radius: 0; font-weight: 400; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+    #mojo-list button.nocode, #blink-list button.nocode { width: auto; flex: 0 0 auto; color: #8ab4f8; }
+    #mojo-list button.on, #blink-list button.on { background: #3c4043; }
+    #blink-chips button { margin: 0 4px 4px 0; }
+    aside, section { min-height: 0; display: flex; flex-direction: column; }
+    aside { background: #292a2d; border-right: 1px solid #3c4043; padding: 12px; }
+    aside h2, section h2 { margin: 0 0 8px; font-size: 12px; color: #9aa0a6; text-transform: uppercase; letter-spacing: 0.06em; }
+    .gen { overflow: auto; }
+    .gen button, .gen select, .gen input { font: 12px/1.3 ui-sans-serif, Segoe UI, sans-serif; }
+    .gen button { display: block; width: 100%; text-align: left; margin: 0 0 4px; background: #3c4043; color: #e8eaed; border-radius: 6px; padding: 6px 8px; font-weight: 500; }
+    .gen label { display: block; margin: 10px 0 4px; color: #9aa0a6; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .gen select, .gen input { width: 100%; margin-bottom: 4px; background: #171717; color: #e8eaed; border: 1px solid #3c4043; border-radius: 6px; padding: 6px; }
+    #test aside input, #test aside button { width: 100%; margin: 0 0 6px; }
+    #test aside label { display: flex; gap: 8px; align-items: center; margin: 4px 0; color: #e8eaed; text-transform: none; letter-spacing: 0; }
+    section { padding: 12px; }
+    section + section { border-left: 1px solid #3c4043; }
+    textarea, pre { flex: 1; margin: 0; width: 100%; border: 1px solid #3c4043; border-radius: 8px; background: #171717; color: #e8eaed; font: 13px/1.45 ui-monospace, Consolas, monospace; padding: 12px; }
+    textarea { resize: none; }
+    pre { overflow: auto; white-space: pre-wrap; }
+    pre.fail { color: #f28b82; }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 5; }
+    .modal[hidden] { display: none; }
+    .sheet { width: min(520px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow: auto; background: #292a2d; border: 1px solid #3c4043; border-radius: 12px; padding: 16px; }
+    .sheet h3 { margin: 0 0 12px; }
+    .sheet label { display: block; margin: 10px 0 4px; color: #9aa0a6; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .sheet input, .sheet select { width: 100%; background: #171717; color: #e8eaed; border: 1px solid #3c4043; border-radius: 6px; padding: 8px; font: 13px/1.3 ui-monospace, Consolas, monospace; }
+    .sheet .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    .sheet .row button.ghost { background: #3c4043; color: #e8eaed; }
+  </style>
+</head>
+<body>
+<header>
+  <strong>Bruja Browser Test Framework</strong>
+  <nav>
+    <button type="button" class="on" data-tab="develop">Develop</button>
+    <button type="button" data-tab="test">Test</button>
+    <button type="button" data-tab="monitor">Monitor</button>
+    <button type="button" data-tab="debug">Debug</button>
+  </nav>
+  <span class="spacer"></span>
+  <button id="run" type="button">Run script</button>
+</header>
+<div id="develop" class="view on">
+  <aside>
+    <div class="gen">
+      <label>Nocode</label>
+      <button type="button" data-block="loadtimes">chrome.loadTimes</button>
+      <button type="button" data-block="csi">chrome.csi</button>
+      <button type="button" data-block="app">chrome.app.getDetails</button>
+      <button type="button" data-block="runtime">chrome.runtime.id</button>
+      <button type="button" data-block="send">chrome.runtime.sendMessage</button>
+      <button type="button" data-block="platform">chrome.runtime.getPlatformInfo</button>
+      <button type="button" data-block="pipe">Mojo.createMessagePipe</button>
+      <button type="button" data-block="mojo">Mojo.bindInterface</button>
+      <button type="button" data-block="handler">access_code_cast.mojom.PageHandler.AddSink</button>
+      <button type="button" data-block="execute">blink.mojom.LocalFrame.JavaScriptExecuteRequest</button>
+      <button type="button" data-block="trust">blink.mojom.DevToolsAgent.AttachDevToolsSession</button>
+      <button type="button" data-block="mojovm">MojoVM.lookup</button>
+      <button type="button" data-block="deputy">ces.Loader.Resolve</button>
+      <button type="button" data-block="network">network.mojom.NetworkService.StartNetLog</button>
+      <button type="button" data-block="tracing">tracing.mojom.ConsumerHost.EnableTracing</button>
+      <button type="button" data-block="webrtc">chrome.mojom.WebRtcLoggingAgent.Start</button>
+      <button type="button" data-block="audio">media.mojom.AudioLog.OnStarted</button>
+      <button type="button" id="add">Add step</button>
+      <button type="button" id="clear">Clear script</button>
+    </div>
+  </aside>
+  <section>
+    <h2>Script</h2>
+    <textarea id="script" spellcheck="false">print page surface
+world page
+eval typeof chrome.runtime
+print
+expect undefined
+eval chrome.loadTimes()
+print
+expect blink-idl
+eval typeof Mojo
+print
+expect undefined
+
+print extension runtime
+world extension
+eval chrome.runtime.id
+print
+expect nkeimhogjdpnpccoofpliimaahmaaome
+eval chrome.runtime.sendMessage('ping')
+print
+expect extensions.mojom.LocalFrameHost.OpenChannelToExtension
+
+print devtools trust
+world terraformed
+eval DevTools.attach('extension')
+print
+expect extension
+eval DevTools.trusted()
+print
+expect true
+eval DevTools.dispatch('Database.enable')
+print
+expect ok
+eval DevTools.attachSession('extension', false)
+print
+expect untrusted
+eval DevTools.dispatch('Database.enable')
+print
+expect denied
+
+print deputies
+deputy chrome://histograms/
+print
+expect ok deputy=chrome-internal access=none webdata=0 committed=chrome://histograms/
+deputy chrome://dino/
+print
+contains webdata=1
+
+print browser page
+browser page document.title
+print
+expect Bruja Browser Test Framework
+browser frame document.body.dataset.frame
+print
+expect child
+browser pipe ping
+print
+expect pong:ping
+</textarea>
+  </section>
+  <section>
+    <h2>Result</h2>
+    <pre id="out">Write a script, then run it.</pre>
+  </section>
+</div>
+<div id="test" class="view">
+  <aside>
+    <h2>Scripts</h2>
+    <input id="script-name" value="page surface" />
+    <button type="button" id="save-script">Save</button>
+    <div class="gen" id="script-list"></div>
+    <label><input id="attach-device" type="checkbox" checked /> device</label>
+    <label><input id="attach-network" type="checkbox" checked /> network</label>
+    <label><input id="attach-tracing" type="checkbox" checked /> tracing</label>
+  </aside>
+  <div class="editors">
+    <h2>Test script</h2>
+    <textarea id="test-script" spellcheck="false"></textarea>
+  </div>
+  <section class="result">
+    <h2>Result</h2>
+    <pre id="test-out">Load a script, edit it, then run.</pre>
+  </section>
+  <div class="monitors">
+    <section><h2>Device</h2><pre id="test-device"></pre></section>
+    <section><h2>Network</h2><pre id="test-network"></pre></section>
+    <section><h2>Tracing</h2><pre id="test-tracing"></pre></section>
+  </div>
+</div>
+<div id="monitor" class="view">
+  <section><h2>Device</h2><pre id="global-device"></pre></section>
+  <section><h2>Network</h2><pre id="global-network"></pre></section>
+  <section><h2>Tracing</h2><pre id="global-tracing"></pre></section>
+</div>
+<div id="debug" class="view">
+  <aside>
+    <h2>Debug</h2>
+    <div class="tools">
+      <button type="button" class="on" data-tool="console">Console</button>
+      <button type="button" data-tool="elements">Elements</button>
+      <button type="button" data-tool="network">Network</button>
+      <button type="button" data-tool="mojo">Mojo</button>
+      <button type="button" data-tool="blink">Blink</button>
+      <button type="button" data-tool="iwa">IWA</button>
+    </div>
+  </aside>
+  <section id="tool-console" class="panel on">
+    <h2>Console</h2>
+    <pre id="console-log"></pre>
+    <input id="console-input" class="console-input" placeholder="eval on this page" />
+  </section>
+  <section id="tool-elements" class="panel">
+    <h2>Elements</h2>
+    <pre id="element-tree"></pre>
+  </section>
+  <section id="tool-network" class="panel">
+    <h2>Network</h2>
+    <pre id="network-log"></pre>
+  </section>
+  <section id="tool-iwa" class="panel">
+    <h2>IWA</h2>
+    <pre id="iwa-log"></pre>
+    <iframe id="iwa-frame" title="Bruja IWA" src="about:blank" hidden></iframe>
+  </section>
+  <section id="tool-blink" class="panel">
+    <h2>Blink</h2>
+    <div id="blink-chips"></div>
+    <input id="blink-q" placeholder="blink.mojom interface" value="LocalFrame" />
+    <div class="pager" id="blink-pager"></div>
+    <div class="split">
+      <pre id="blink-list"></pre>
+      <pre id="blink-detail">Internal blink.mojom pipes.</pre>
+    </div>
+    <pre id="blink-comm"></pre>
+  </section>
+  <section id="tool-mojo" class="panel">
+    <h2>Mojo</h2>
+    <input id="mojo-q" placeholder="interface, method, or file" />
+    <div class="pager" id="mojo-pager"></div>
+    <div class="split">
+      <pre id="mojo-list"></pre>
+      <pre id="mojo-detail">9062 methods from the mojom portfolio. Search, then call.</pre>
+    </div>
+  </section>
+</div>
+<iframe id="browser-frame" title="child frame" style="position:absolute;width:0;height:0;border:0" srcdoc="<!DOCTYPE html><body data-frame=&quot;child&quot;><script>window.brujaPipe=function(s){return 'pong:'+s}</script></body>"></iframe>
+<div id="modal" class="modal" hidden>
+  <form class="sheet" id="modal-form">
+    <h3 id="modal-title">Configure</h3>
+    <div id="modal-fields"></div>
+    <div class="row">
+      <button type="button" class="ghost" id="modal-cancel">Cancel</button>
+      <button type="submit">Add to script</button>
+    </div>
+  </form>
+</div>
+<script type="module">
+import { instantiate, run } from "/loader/loader.js";
+const out = document.getElementById("out");
+const script = document.getElementById("script");
+const testScript = document.getElementById("test-script");
+const button = document.getElementById("run");
+const frames = ["page", "isolated", "extension", "mojojs", "internals", "terraformed"];
+let tab = "develop";
+const modal = document.getElementById("modal");
+const fieldsEl = document.getElementById("modal-fields");
+let current = null;
+
+function text(name, label, value) {
+  return { name, label, kind: "text", value };
+}
+function pick(name, label, options, value) {
+  return { name, label, kind: "select", options, value };
+}
+function check(name, label, value) {
+  return { name, label, kind: "check", value };
+}
+function line(cmd, arg) {
+  if (arg === undefined || arg === null || arg === "") return cmd;
+  return cmd + " " + arg;
+}
+function checks(v, pairs) {
+  let out = line("print", v.label) + "\n" + line("world", v.frame) + "\n";
+  for (let i = 0; i < pairs.length; i++) {
+    out += line(pairs[i][0], v[pairs[i][1]]) + "\n";
+    if (v.trace) out += "print\n";
+    if (v[pairs[i][2]]) out += line(pairs[i][3] || "expect", v[pairs[i][2]]) + "\n";
+  }
+  return out;
+}
+
+const specs = {
+  step: {
+    title: "Add step",
+    fields(v) {
+      const cmd = (v && v.cmd) || "eval";
+      const cmds = ["world", "eval", "num", "run", "checkpoint", "deputy", "print", "expect", "contains", "loadtimes", "csi", "app", "id", "send", "platform", "pipe", "bind", "read", "write", "close", "handler", "execute", "isolated", "method", "tests", "count", "lookup", "call", "targets", "attach", "session", "trust", "dispatch", "target", "debug", "break", "paused", "resume", "step", "code", "interstitial", "monitor", "entry", "unmonitor", "log"];
+      const list = [pick("cmd", "Command", cmds, cmd)];
+      if (cmd === "world") list.push(pick("frame", "Frame", frames, (v && v.frame) || "page"));
+      if (cmd === "eval" || cmd === "num" || cmd === "run" || cmd === "isolated" || cmd === "execute" || cmd === "tests" || cmd === "debug") list.push(text("expr", "Expression", (v && v.expr) || ""));
+      if (cmd === "deputy") list.push(text("url", "URL", (v && v.url) || "chrome://"));
+      if (cmd === "print") list.push(text("message", "Message (empty prints the last result)", (v && v.message) || ""));
+      if (cmd === "expect" || cmd === "contains") list.push(text("expected", "Expected text", (v && v.expected) || ""));
+      if (cmd === "send" || cmd === "write") list.push(text("expr", "Argument", (v && v.expr) || ""));
+      if (cmd === "bind" || cmd === "handler" || cmd === "method" || cmd === "lookup" || cmd === "call") list.push(text("expr", "Name", (v && v.expr) || ""));
+      if (cmd === "attach" || cmd === "target") list.push(pick("frame", "Target", frames, (v && v.frame) || "extension"));
+      if (cmd === "session") {
+        list.push(pick("frame", "Target", frames, (v && v.frame) || "extension"));
+        list.push(pick("flag", "client_is_trusted", ["true", "false"], (v && v.flag) || "true"));
+      }
+      if (cmd === "dispatch") list.push(text("expr", "Method", (v && v.expr) || "Database.enable"));
+      if (cmd === "break") {
+        list.push(text("url", "Script URL", (v && v.url) || "chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/background.js"));
+        list.push(text("line", "Line", (v && v.line) || "1"));
+      }
+      if (cmd === "step") list.push(pick("flag", "Kind", ["over", "into", "out"], (v && v.flag) || "over"));
+      if (cmd === "code") list.push(text("expr", "Net error", (v && v.expr) || "-106"));
+      if (cmd === "interstitial") list.push(text("expr", "Name", (v && v.expr) || "ssl"));
+      if (cmd === "monitor" || cmd === "entry" || cmd === "unmonitor" || cmd === "log") list.push(pick("flag", "Capture", ["device", "network", "tracing", "webrtc", "audio"], (v && v.flag) || "device"));
+      return list;
+    },
+    build(v) {
+      if (v.cmd === "world") return line("world", v.frame) + "\n";
+      if (v.cmd === "checkpoint" || v.cmd === "loadtimes" || v.cmd === "csi" || v.cmd === "app" || v.cmd === "id" || v.cmd === "platform" || v.cmd === "pipe" || v.cmd === "read" || v.cmd === "close" || v.cmd === "count" || v.cmd === "targets" || v.cmd === "trust" || v.cmd === "paused" || v.cmd === "resume") return v.cmd + "\n";
+      if (v.cmd === "deputy") return line("deputy", v.url) + "\n";
+      if (v.cmd === "print") return line("print", v.message) + "\n";
+      if (v.cmd === "expect" || v.cmd === "contains") return line(v.cmd, v.expected) + "\n";
+      if (v.cmd === "attach" || v.cmd === "target") return line(v.cmd, v.frame) + "\n";
+      if (v.cmd === "session") return "session " + v.frame + " " + v.flag + "\n";
+      if (v.cmd === "break") return "break " + v.url + " " + v.line + "\n";
+      if (v.cmd === "step") return line("step", v.flag) + "\n";
+      if (v.cmd === "monitor" || v.cmd === "entry" || v.cmd === "unmonitor" || v.cmd === "log") return line(v.cmd, v.flag) + "\n";
+      return line(v.cmd, v.expr) + "\n";
+    },
+  },
+  page: {
+    title: "Page surface",
+    fields: [
+      text("label", "Print label", "page surface"),
+      pick("frame", "Frame", frames, "page"),
+      check("trace", "Print each result", true),
+      text("a", "Eval", "typeof chrome.runtime"), text("ax", "Expect", "undefined"),
+      text("b", "Eval", "chrome.loadTimes()"), text("bx", "Expect", "blink-idl"),
+      text("c", "Eval", "typeof Mojo"), text("cx", "Expect", "undefined"),
+    ],
+    build: (v) => checks(v, [["eval", "a", "ax"], ["eval", "b", "bx"], ["eval", "c", "cx"]]),
+  },
+  isolated: {
+    title: "Isolated world",
+    fields: [
+      text("label", "Print label", "isolated world"),
+      pick("frame", "Frame", frames, "isolated"),
+      check("trace", "Print each result", true),
+      text("a", "Eval", "typeof chrome.app"), text("ax", "Expect", "undefined"),
+      text("b", "Eval", "typeof chrome.loadTimes"), text("bx", "Expect", "function"),
+    ],
+    build: (v) => checks(v, [["eval", "a", "ax"], ["eval", "b", "bx"]]),
+  },
+  extension: {
+    title: "Extension runtime",
+    fields: [
+      text("label", "Print label", "extension runtime"),
+      pick("frame", "Frame", frames, "extension"),
+      check("trace", "Print each result", true),
+      text("id", "Extension id", "nkeimhogjdpnpccoofpliimaahmaaome"),
+      text("msg", "sendMessage argument", "ping"),
+      text("channel", "Expect channel", "extensions.mojom.LocalFrameHost.OpenChannelToExtension"),
+      text("mojo", "Expect typeof Mojo", "undefined"),
+    ],
+    build(v) {
+      v.idExpr = "chrome.runtime.id";
+      v.sendExpr = "chrome.runtime.sendMessage('" + v.msg + "')";
+      v.mojoExpr = "typeof Mojo";
+      return checks(v, [["eval", "idExpr", "id"], ["eval", "sendExpr", "channel"], ["eval", "mojoExpr", "mojo"]]);
+    },
+  },
+  mojo: {
+    title: "MojoJS bind",
+    fields: [
+      text("label", "Print label", "mojojs bind"),
+      pick("frame", "Frame", frames, "mojojs"),
+      check("trace", "Print each result", true),
+      text("iface", "Interface name", "blink.mojom.BrowserInterfaceBroker"),
+      text("result", "Expect pipe result", "0"),
+      text("bound", "Expect bind result", "0"),
+    ],
+    build(v) {
+      let out = line("print", v.label) + "\n" + line("world", v.frame) + "\n";
+      out += "run globalThis.pipe = Mojo.createMessagePipe()\nnum pipe.result\n";
+      if (v.trace) out += "print\n";
+      out += line("expect", v.result) + "\n";
+      out += "run globalThis.bound = Mojo.bindInterface('" + v.iface + "', pipe.handle0); bound.then(function(v) { globalThis.boundResult = v; })\ncheckpoint\nnum boundResult\n";
+      if (v.trace) out += "print\n";
+      out += line("expect", v.bound) + "\n";
+      out += "run globalThis.msg = pipe.handle1.readMessage()\neval msg.payload\n";
+      if (v.trace) out += "print\n";
+      out += line("expect", v.iface) + "\n";
+      return out;
+    },
+  },
+  internals: {
+    title: "Internals AddSink",
+    fields: [
+      text("label", "Print label", "internals AddSink"),
+      pick("frame", "Frame", frames, "internals"),
+      check("trace", "Print each result", true),
+      text("iface", "Interface", "access_code_cast.mojom.PageHandler"),
+      text("method", "Method", "AddSink"),
+      text("ordinal", "Expect ordinal", "2074422509"),
+      text("chrome", "Expect typeof chrome", "undefined"),
+    ],
+    build(v) {
+      v.expr = "globalThis['" + v.iface + "']['" + v.method + "']().ordinal";
+      v.chromeExpr = "typeof chrome";
+      return checks(v, [["num", "expr", "ordinal"], ["eval", "chromeExpr", "chrome"]]);
+    },
+  },
+  execute: {
+    title: "Three execute calls",
+    fields: [
+      text("label", "Print label", "three execute calls"),
+      pick("frame", "Frame", frames, "terraformed"),
+      check("trace", "Print each result", true),
+      text("src", "JavaScriptExecuteRequest source", "1+1"),
+      text("srcExpect", "Expect", "2"),
+      text("iso", "Isolated expression", "typeof chrome.app"),
+      text("isoExpect", "Expect", "undefined"),
+      text("object", "Method object", "extensions.mojom.MessagePort"),
+      text("method", "Method", "dispatchDisconnect"),
+      text("methodExpect", "Expect ordinal", "2592569"),
+      text("count", "Expect MojoVM.count", "9062"),
+    ],
+    build(v) {
+      v.a = "JavaScriptExecuteRequest('" + v.src + "')";
+      v.b = "JavaScriptExecuteRequestInIsolatedWorld('" + v.iso + "')";
+      v.c = "JavaScriptMethodExecuteRequest('" + v.object + "', '" + v.method + "')";
+      v.d = "MojoVM.count";
+      return checks(v, [["num", "a", "srcExpect"], ["eval", "b", "isoExpect"], ["num", "c", "methodExpect"], ["num", "d", "count"]]);
+    },
+  },
+  trust: {
+    title: "DevTools trust",
+    fields: [
+      text("label", "Print label", "devtools trust"),
+      pick("frame", "Frame", frames, "terraformed"),
+      check("trace", "Print each result", true),
+      text("target", "Attach target", "extension"),
+      text("session", "Expect untrusted session", "untrusted"),
+      text("allow", "Trusted method", "Database.enable"),
+      text("allowExpect", "Expect", "ok"),
+      text("deny", "Untrusted method", "Database.enable"),
+      text("denyExpect", "Expect", "denied"),
+      text("open", "Always-allowed method", "Runtime.evaluate"),
+      text("openExpect", "Expect", "ok"),
+    ],
+    build(v) {
+      v.a = "DevTools.attach('" + v.target + "')";
+      v.b = "DevTools.dispatch('" + v.allow + "')";
+      v.c = "DevTools.attachSession('" + v.target + "', false)";
+      v.d = "DevTools.dispatch('" + v.deny + "')";
+      v.e = "DevTools.dispatch('" + v.open + "')";
+      return checks(v, [["eval", "a", "target"], ["eval", "b", "allowExpect"], ["eval", "c", "session"], ["eval", "d", "denyExpect"], ["eval", "e", "openExpect"]]);
+    },
+  },
+  deputy: {
+    title: "Deputies",
+    fields: [
+      text("label", "Print label", "deputies"),
+      check("trace", "Print each result", true),
+      text("url1", "Internal URL", "chrome://histograms/"),
+      text("shot1", "Expect shot", "ok deputy=chrome-internal access=none webdata=0 committed=chrome://histograms/"),
+      text("url2", "Named URL", "chrome://gpu/"),
+      text("shot2", "Expect shot", "ok deputy=gpu access=none webdata=0 committed=chrome://gpu"),
+      text("url3", "Neterror URL", "chrome://dino/"),
+      text("has", "Contains", "webdata=1"),
+    ],
+    build(v) {
+      let out = line("print", v.label) + "\n";
+      out += line("deputy", v.url1) + "\n";
+      if (v.trace) out += "print\n";
+      out += line("expect", v.shot1) + "\n";
+      out += line("deputy", v.url2) + "\n";
+      if (v.trace) out += "print\n";
+      out += line("expect", v.shot2) + "\n";
+      out += line("deputy", v.url3) + "\n";
+      if (v.trace) out += "print\n";
+      out += line("contains", v.has) + "\n";
+      return out;
+    },
+  },
+  loadtimes: {
+    title: "chrome.loadTimes",
+    fields: [text("label", "Print label", "loadTimes"), pick("frame", "Frame", frames, "page"), check("trace", "Print each result", true), text("expect", "Expect", "blink-idl")],
+    build(v) { return line("print", v.label) + "\n" + line("world", v.frame) + "\nloadtimes\n" + (v.trace ? "print\n" : "") + line("expect", v.expect) + "\n"; },
+  },
+  csi: {
+    title: "chrome.csi",
+    fields: [text("label", "Print label", "csi"), pick("frame", "Frame", frames, "page"), check("trace", "Print each result", true), text("expect", "Expect", "blink-idl")],
+    build(v) { return line("print", v.label) + "\n" + line("world", v.frame) + "\ncsi\n" + (v.trace ? "print\n" : "") + line("expect", v.expect) + "\n"; },
+  },
+  app: {
+    title: "chrome.app.getDetails",
+    fields: [text("label", "Print label", "app details"), pick("frame", "Frame", frames, "page"), check("trace", "Print each result", true), text("expect", "Expect", "blink-idl")],
+    build(v) { return line("print", v.label) + "\n" + line("world", v.frame) + "\napp\n" + (v.trace ? "print\n" : "") + line("expect", v.expect) + "\n"; },
+  },
+  runtime: {
+    title: "Extension id",
+    fields: [text("label", "Print label", "runtime id"), pick("frame", "Frame", frames, "extension"), check("trace", "Print each result", true), text("expect", "Expect id", "nkeimhogjdpnpccoofpliimaahmaaome")],
+    build(v) { return line("print", v.label) + "\n" + line("world", v.frame) + "\nid\n" + (v.trace ? "print\n" : "") + line("expect", v.expect) + "\n"; },
+  },
+  send: {
+    title: "sendMessage",
+    fields: [text("label", "Print label", "sendMessage"), pick("frame", "Frame", frames, "extension"), check("trace", "Print each result", true), text("msg", "Message", "ping"), text("expect", "Expect channel", "extensions.mojom.LocalFrameHost.OpenChannelToExtension")],
+    build(v) { return line("print", v.label) + "\n" + line("world", v.frame) + "\n" + line("send", v.msg) + "\n" + (v.trace ? "print\n" : "") + line("expect", v.expect) + "\n"; },
+  },
+  platform: {
+    title: "getPlatformInfo",
+    fields: [text("label", "Print label", "getPlatformInfo"), pick("frame", "Frame", frames, "extension"), check("trace", "Print each result", true), text("expect", "Expect", "extensions.mojom.LocalFrameHost.Request")],
+    build(v) { return line("print", v.label) + "\n" + line("world", v.frame) + "\nplatform\n" + (v.trace ? "print\n" : "") + line("expect", v.expect) + "\n"; },
+  },
+  pipe: {
+    title: "Message pipe",
+    fields: [text("label", "Print label", "message pipe"), pick("frame", "Frame", frames, "mojojs"), check("trace", "Print each result", true), text("iface", "Bind interface", "blink.mojom.BrowserInterfaceBroker"), text("payload", "Write payload", "ping"), text("result", "Expect pipe result", "0")],
+    build(v) {
+      let out = line("print", v.label) + "\n" + line("world", v.frame) + "\npipe\n";
+      if (v.trace) out += "print\n";
+      out += line("expect", v.result) + "\n" + line("bind", v.iface) + "\n";
+      if (v.trace) out += "print\n";
+      out += line("expect", v.result) + "\nread\n" + line("expect", v.iface) + "\n" + line("write", v.payload) + "\nread\n" + line("expect", v.payload) + "\nclose\nread\nexpect closed\n";
+      return out;
+    },
+  },
+  handler: {
+    title: "Page handler",
+    fields: [text("label", "Print label", "page handler"), pick("frame", "Frame", frames, "internals"), check("trace", "Print each result", true), text("name", "Interface.Method", "access_code_cast.mojom.PageHandler.AddSink"), text("ordinal", "Expect mojo ordinal", "2074422509")],
+    build(v) { return line("print", v.label) + "\n" + line("world", v.frame) + "\n" + line("handler", v.name) + "\n" + (v.trace ? "print\n" : "") + line("expect", v.ordinal) + "\n"; },
+  },
+  mojovm: {
+    title: "MojoVM lookup",
+    fields: [text("label", "Print label", "mojovm"), pick("frame", "Frame", frames, "terraformed"), check("trace", "Print each result", true), text("name", "Method", "extensions.mojom.MessagePort.DispatchDisconnect"), text("row", "Expect lookup", "voodoo=1481416133 mojo=2592569"), text("count", "Expect count", "9062")],
+    build(v) {
+      let out = line("print", v.label) + "\n" + line("world", v.frame) + "\ncount\n";
+      if (v.trace) out += "print\n";
+      out += line("expect", v.count) + "\n" + line("lookup", v.name) + "\n";
+      if (v.trace) out += "print\n";
+      out += line("expect", v.row) + "\n" + line("call", v.name) + "\ncontains " + v.row.split("mojo=")[1] + "\n";
+      return out;
+    },
+  },
+  devtools: {
+    title: "DevTools debugger",
+    fields: [text("label", "Print label", "devtools debugger"), pick("frame", "Frame", frames, "terraformed"), check("trace", "Print each result", true), pick("target", "Attach target", frames, "extension"), text("expr", "Evaluate", "chrome.runtime.id"), text("exprExpect", "Expect", "nkeimhogjdpnpccoofpliimaahmaaome"), text("url", "Breakpoint URL", "chrome-extension://nkeimhogjdpnpccoofpliimaahmaaome/background.js"), text("line", "Line", "1"), pick("kind", "Step", ["over", "into", "out"], "over")],
+    build(v) {
+      let out = line("print", v.label) + "\n" + line("world", v.frame) + "\ntargets\n";
+      if (v.trace) out += "print\n";
+      out += "expect page,isolated,extension,mojojs,internals,terraformed\n" + line("target", v.target) + "\n" + line("attach", v.target) + "\n" + line("expect", v.target) + "\n" + line("debug", v.expr) + "\n";
+      if (v.trace) out += "print\n";
+      out += line("expect", v.exprExpect) + "\ndebug debugger\nexpect paused\npaused\nexpect debuggerStatement\n" + line("step", v.kind) + "\nexpect step " + v.kind + "\nresume\nexpect resumed\nbreak " + v.url + " " + v.line + "\nexpect 1\n";
+      return out;
+    },
+  },
+  neterror: {
+    title: "Net error",
+    fields: [text("label", "Print label", "net error"), check("trace", "Print each result", true), text("code", "Net error", "-106"), text("has", "Contains", "webdata=1")],
+    build(v) { return line("print", v.label) + "\n" + line("code", v.code) + "\n" + (v.trace ? "print\n" : "") + line("contains", v.has) + "\n"; },
+  },
+  interstitial: {
+    title: "Interstitial",
+    fields: [text("label", "Print label", "interstitial"), check("trace", "Print each result", true), text("name", "Name", "ssl"), text("shot", "Expect", "ok deputy=interstitials access=none webdata=0 committed=chrome://interstitials/")],
+    build(v) { return line("print", v.label) + "\n" + line("interstitial", v.name) + "\n" + (v.trace ? "print\n" : "") + line("expect", v.shot) + "\n"; },
+  },
+  device: {
+    title: "Device log",
+    fields: [text("label", "Print label", "device log"), pick("frame", "Frame", frames, "internals"), check("trace", "Print each result", true), text("iface", "Interface", "access_code_cast.mojom.PageHandler"), text("method", "Method", "AddSink")],
+    build(v) {
+      return line("print", v.label) + "\nworld " + v.frame + "\nmonitor device\nnum globalThis['" + v.iface + "']['" + v.method + "']().ordinal\nlog device\n" + (v.trace ? "print\n" : "") + "contains \trun\ttrue\nunmonitor device\n";
+    },
+  },
+  network: {
+    title: "Network log",
+    fields: [text("label", "Print label", "network log"), pick("frame", "Frame", frames, "terraformed"), check("trace", "Print each result", true)],
+    build(v) { return line("print", v.label) + "\nworld " + v.frame + "\nmonitor network\nentry network\nlog network\n" + (v.trace ? "print\n" : "") + "contains 1562813055\t" + "run\ttrue\ncontains 457479438\t" + "run\ttrue\nunmonitor network\n"; },
+  },
+  tracing: {
+    title: "Tracing",
+    fields: [text("label", "Print label", "tracing"), pick("frame", "Frame", frames, "terraformed"), check("trace", "Print each result", true)],
+    build(v) { return line("print", v.label) + "\nworld " + v.frame + "\nmonitor tracing\nentry tracing\nlog tracing\n" + (v.trace ? "print\n" : "") + "contains 1646865075\t" + "run\ttrue\nunmonitor tracing\n"; },
+  },
+  webrtc: {
+    title: "WebRTC log",
+    fields: [text("label", "Print label", "webrtc log"), pick("frame", "Frame", frames, "terraformed"), check("trace", "Print each result", true)],
+    build(v) { return line("print", v.label) + "\nworld " + v.frame + "\nmonitor webrtc\nentry webrtc\nlog webrtc\n" + (v.trace ? "print\n" : "") + "contains 203607478\t" + "run\ttrue\nunmonitor webrtc\n"; },
+  },
+  audio: {
+    title: "Audio log",
+    fields: [text("label", "Print label", "audio log"), pick("frame", "Frame", frames, "terraformed"), check("trace", "Print each result", true)],
+    build(v) { return line("print", v.label) + "\nworld " + v.frame + "\nmonitor audio\nentry audio\nlog audio\n" + (v.trace ? "print\n" : "") + "contains 1416459896\t" + "run\ttrue\nunmonitor audio\n"; },
+  },
+};
+
+function readForm() {
+  const v = {};
+  fieldsEl.querySelectorAll("[data-name]").forEach((el) => {
+    v[el.dataset.name] = el.type === "checkbox" ? el.checked : el.value;
+  });
+  return v;
+}
+function paint(spec, v) {
+  const list = typeof spec.fields === "function" ? spec.fields(v) : spec.fields;
+  fieldsEl.innerHTML = "";
+  for (let i = 0; i < list.length; i++) {
+    const f = Object.assign({}, list[i]);
+    if (v && Object.prototype.hasOwnProperty.call(v, f.name)) f.value = v[f.name];
+    const label = document.createElement("label");
+    label.textContent = f.label;
+    fieldsEl.appendChild(label);
+    let el;
+    if (f.kind === "select") {
+      el = document.createElement("select");
+      for (let j = 0; j < f.options.length; j++) {
+        const opt = document.createElement("option");
+        opt.value = f.options[j];
+        opt.textContent = f.options[j];
+        if (f.options[j] === f.value) opt.selected = true;
+        el.appendChild(opt);
+      }
+    } else if (f.kind === "check") {
+      el = document.createElement("input");
+      el.type = "checkbox";
+      el.checked = !!f.value;
+    } else {
+      el = document.createElement("input");
+      el.type = "text";
+      el.value = f.value || "";
+    }
+    el.dataset.name = f.name;
+    fieldsEl.appendChild(el);
+  }
+  const cmd = fieldsEl.querySelector("[data-name='cmd']");
+  if (cmd) cmd.addEventListener("change", () => paint(spec, readForm()));
+}
+function openModal(name, extra) {
+  current = specs[name];
+  document.getElementById("modal-title").textContent = current.title;
+  const seed = {};
+  const list = typeof current.fields === "function" ? current.fields(extra || null) : current.fields;
+  for (let i = 0; i < list.length; i++) seed[list[i].name] = list[i].value;
+  if (extra) {
+    Object.keys(extra).forEach((k) => { seed[k] = extra[k]; });
+  }
+  paint(current, seed);
+  modal.hidden = false;
+}
+function exportToNocode(row) {
+  document.querySelector("nav button[data-tab='develop']").click();
+  openModal("handler", {
+    label: row.name,
+    frame: "terraformed",
+    trace: true,
+    name: row.name,
+    ordinal: row.mojo,
+  });
+}
+document.querySelectorAll("[data-block]").forEach((el) => {
+  el.addEventListener("click", () => openModal(el.dataset.block));
+});
+document.getElementById("add").addEventListener("click", () => openModal("step"));
+document.getElementById("modal-cancel").addEventListener("click", () => { modal.hidden = true; });
+document.getElementById("modal-form").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const chunk = current.build(readForm());
+  script.value = script.value.replace(/\s*$/, "") + "\n" + chunk;
+  modal.hidden = true;
+});
+document.getElementById("clear").addEventListener("click", () => { script.value = ""; });
+
+const panes = {
+  device: [document.getElementById("test-device"), document.getElementById("global-device")],
+  network: [document.getElementById("test-network"), document.getElementById("global-network")],
+  tracing: [document.getElementById("test-tracing"), document.getElementById("global-tracing")],
+};
+let wkvGuest = null;
+async function wkvExec(cmd) {
+  if (!wkvGuest) {
+    const bytes = await (await fetch("/wkv.wasm", { cache: "no-store" })).arrayBuffer();
+    const loaded = await instantiate(bytes, {});
+    const exp = loaded.exports;
+    if (typeof exp._initialize === "function") exp._initialize();
+    wkvGuest = exp;
+  }
+  const enc = new TextEncoder().encode(cmd);
+  const ptr = wkvGuest.alloc(enc.length) >>> 0;
+  new Uint8Array(wkvGuest.memory.buffer, ptr, enc.length).set(enc);
+  const packed = BigInt(wkvGuest.wkvExec(ptr, enc.length));
+  const len = Number(packed & 0xffffffffn);
+  const at = Number(packed >> 32n);
+  const body = new TextDecoder().decode(new Uint8Array(wkvGuest.memory.buffer, at, len));
+  const env = JSON.parse(body);
+  if (!env.ok) throw new Error(env.error || "wkv");
+  return env.result;
+}
+function scriptKey(name) {
+  return encodeURIComponent(name);
+}
+async function library() {
+  const raw = await wkvExec("GET 1 __names");
+  const lib = {};
+  if (!raw || raw === "(nil)") return lib;
+  const names = raw.split("\n").filter(Boolean);
+  for (let i = 0; i < names.length; i++) {
+    const value = await wkvExec("GET 1 " + names[i]);
+    lib[decodeURIComponent(names[i])] = value === "(nil)" ? "" : value;
+  }
+  return lib;
+}
+async function paintLibrary() {
+  const box = document.getElementById("script-list");
+  const lib = await library();
+  box.innerHTML = "";
+  Object.keys(lib).forEach((name) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = name;
+    b.addEventListener("click", () => {
+      document.getElementById("script-name").value = name;
+      testScript.value = lib[name];
+    });
+    box.appendChild(b);
+  });
+}
+async function saveScript() {
+  const name = document.getElementById("script-name").value.trim() || "untitled";
+  const key = scriptKey(name);
+  await wkvExec("SET 1 " + key + " " + testScript.value);
+  const raw = await wkvExec("GET 1 __names");
+  const names = !raw || raw === "(nil)" ? [] : raw.split("\n").filter(Boolean);
+  if (names.indexOf(key) < 0) names.push(key);
+  await wkvExec("SET 1 __names " + names.join("\n"));
+  await paintLibrary();
+}
+if (!testScript.value) testScript.value = script.value;
+saveScript().catch((e) => {
+  document.getElementById("script-list").textContent = String(e && e.message ? e.message : e);
+});
+document.getElementById("save-script").addEventListener("click", saveScript);
+const consoleLog = document.getElementById("console-log");
+function consoleLine(kind, text) {
+  consoleLog.textContent += (consoleLog.textContent ? "\n" : "") + kind + " " + text;
+  consoleLog.scrollTop = consoleLog.scrollHeight;
+}
+["log", "info", "warn", "error"].forEach((kind) => {
+  const orig = console[kind].bind(console);
+  console[kind] = (...args) => {
+    consoleLine(kind, args.map((a) => {
+      try { return typeof a === "string" ? a : JSON.stringify(a); }
+      catch (e) { return String(a); }
+    }).join(" "));
+    orig(...args);
+  };
+});
+document.getElementById("console-input").addEventListener("keydown", (ev) => {
+  if (ev.key !== "Enter") return;
+  const expr = ev.target.value;
+  consoleLine(">", expr);
+  ev.target.value = "";
+  try {
+    const v = globalThis.eval(expr);
+    consoleLine("<-", v === undefined ? "undefined" : String(v));
+  } catch (e) {
+    consoleLine("!", e && e.message ? e.message : String(e));
+  }
+});
+function elementTree() {
+  const lines = [];
+  function walk(node, depth) {
+    if (!node || node.nodeType !== 1 || depth > 8 || lines.length > 500) return;
+    let label = node.tagName.toLowerCase();
+    if (node.id) label += "#" + node.id;
+    else if (node.className && typeof node.className === "string") label += "." + node.className.trim().split(/\s+/).slice(0, 2).join(".");
+    lines.push("  ".repeat(depth) + label);
+    for (const child of node.children) walk(child, depth + 1);
+  }
+  walk(document.documentElement, 0);
+  document.getElementById("element-tree").textContent = lines.join("\n");
+}
+function ownTraffic(detail) {
+  const s = String(detail || "");
+  return s.indexOf("127.0.0.1:8807") >= 0 || s.indexOf("/harness.wasm") >= 0 || s.indexOf("/loader/") >= 0 || s.indexOf("/pix.svg") >= 0 || s.indexOf("/portfolio") >= 0 || s.indexOf("/api/iwa") >= 0 || s.indexOf("/iwa") >= 0;
+}
+async function networkLog() {
+  const data = await (await fetch("/api/iwa", { cache: "no-store" })).json();
+  const rows = [];
+  (data.hits || []).forEach((h) => {
+    if (h.kind !== "network" && h.kind !== "tab") return;
+    if (ownTraffic(h.detail)) return;
+    rows.push(h.kind + "\t" + h.detail);
+  });
+  const mon = document.getElementById("global-network").textContent.trim();
+  if (mon) rows.push(mon);
+  document.getElementById("network-log").textContent = rows.join("\n") || "no captured traffic";
+}
+let mojoRows = null;
+let mojoPick = null;
+function bindInterface(name) {
+  if (typeof Mojo === "undefined" || typeof Mojo.bindInterface !== "function") return "no Mojo on this page";
+  try {
+    const pipe = Mojo.createMessagePipe();
+    const bound = Mojo.bindInterface(name, pipe.handle0, "context");
+    return "bound " + name + " " + (bound === undefined ? "undefined" : String(bound));
+  } catch (e) {
+    return e && e.message ? e.message : String(e);
+  }
+}
+function jsName(method) {
+  if (method && method[0] >= "A" && method[0] <= "Z") return method[0].toLowerCase() + method.slice(1);
+  return method;
+}
+async function loadMojo() {
+  if (mojoRows) return;
+  const text = await (await fetch("/portfolio", { cache: "no-store" })).text();
+  mojoRows = [];
+  text.split("\n").forEach((line) => {
+    if (!line || line[0] === "#") return;
+    const p = line.split("\t");
+    if (p.length < 5 || p[0].indexOf(".") < 0) return;
+    const dot = p[0].lastIndexOf(".");
+    mojoRows.push({
+      name: p[0], iface: p[0].slice(0, dot), method: p[0].slice(dot + 1),
+      voodoo: p[1], mojo: p[2], func: p[3], path: p[4],
+    });
+  });
+}
+const pageSize = 50;
+let mojoPage = 0;
+let blinkPage = 0;
+function paintPager(id, page, total, setPage, paint) {
+  const bar = document.getElementById(id);
+  bar.textContent = "";
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  if (page < 0) page = 0;
+  if (page >= pages) page = pages - 1;
+  const start = total ? page * pageSize + 1 : 0;
+  const end = Math.min(total, (page + 1) * pageSize);
+  const prev = document.createElement("button");
+  prev.type = "button";
+  prev.textContent = "Previous";
+  prev.disabled = page <= 0;
+  prev.addEventListener("click", () => { setPage(page - 1); paint(); });
+  const next = document.createElement("button");
+  next.type = "button";
+  next.textContent = "Next";
+  next.disabled = page + 1 >= pages;
+  next.addEventListener("click", () => { setPage(page + 1); paint(); });
+  const label = document.createElement("span");
+  label.textContent = start + "-" + end + " of " + total;
+  bar.appendChild(prev);
+  bar.appendChild(label);
+  bar.appendChild(next);
+  return page;
+}
+function paintMojo() {
+  const q = document.getElementById("mojo-q").value.trim().toLowerCase();
+  const list = document.getElementById("mojo-list");
+  const hits = [];
+  for (let i = 0; i < mojoRows.length; i++) {
+    const row = mojoRows[i];
+    if (!q || row.name.toLowerCase().indexOf(q) >= 0 || row.path.toLowerCase().indexOf(q) >= 0) hits.push(row);
+  }
+  mojoPage = paintPager("mojo-pager", mojoPage, hits.length, (n) => { mojoPage = n; }, paintMojo);
+  const shown = hits.slice(mojoPage * pageSize, mojoPage * pageSize + pageSize);
+  list.textContent = "";
+  shown.forEach((row) => {
+    const item = document.createElement("div");
+    item.className = "item";
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = row.name;
+    if (mojoPick && mojoPick.name === row.name) b.className = "on";
+    b.addEventListener("click", () => { mojoPick = row; showMojo(); paintMojo(); });
+    const exp = document.createElement("button");
+    exp.type = "button";
+    exp.className = "nocode";
+    exp.textContent = "Nocode";
+    exp.addEventListener("click", () => exportToNocode(row));
+    item.appendChild(b);
+    item.appendChild(exp);
+    list.appendChild(item);
+  });
+  if (!hits.length) list.textContent = mojoRows ? "no match" : "loading";
+}
+function showMojo() {
+  const el = document.getElementById("mojo-detail");
+  if (!mojoPick) { el.textContent = mojoRows.length + " methods. Search, then call."; return; }
+  const row = mojoPick;
+  el.textContent = row.name + "\nmojo " + row.mojo + "\nvoodoo " + row.voodoo + "\n" + row.func + "\n" + row.path + "\n";
+  const call = document.createElement("button");
+  call.type = "button";
+  call.textContent = "Call " + row.iface + "." + jsName(row.method);
+  call.addEventListener("click", () => callMojo(row, el));
+  el.appendChild(call);
+  const bind = document.createElement("button");
+  bind.type = "button";
+  bind.textContent = "Mojo.bindInterface";
+  bind.addEventListener("click", () => {
+    const note = document.createElement("div");
+    note.textContent = bindInterface(row.iface);
+    el.appendChild(note);
+  });
+  el.appendChild(bind);
+  const exp = document.createElement("button");
+  exp.type = "button";
+  exp.textContent = "Export to nocode";
+  exp.addEventListener("click", () => exportToNocode(row));
+  el.appendChild(exp);
+}
+let blinkPick = null;
+const blinkPipes = ["LocalFrame", "RemoteFrame", "BrowserInterfaceBroker", "AssociatedInterfaceProvider", "DevToolsAgent"];
+function paintBlink() {
+  if (!mojoRows) return;
+  const q = document.getElementById("blink-q").value.trim().toLowerCase();
+  const list = document.getElementById("blink-list");
+  const hits = [];
+  for (let i = 0; i < mojoRows.length; i++) {
+    const row = mojoRows[i];
+    if (row.name.indexOf("blink.mojom.") !== 0) continue;
+    if (q && row.name.toLowerCase().indexOf(q) < 0 && row.path.toLowerCase().indexOf(q) < 0) continue;
+    hits.push(row);
+  }
+  blinkPage = paintPager("blink-pager", blinkPage, hits.length, (n) => { blinkPage = n; }, paintBlink);
+  const shown = hits.slice(blinkPage * pageSize, blinkPage * pageSize + pageSize);
+  list.textContent = "";
+  shown.forEach((row) => {
+    const item = document.createElement("div");
+    item.className = "item";
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = row.method + "  " + row.mojo;
+    if (blinkPick && blinkPick.name === row.name) b.className = "on";
+    b.addEventListener("click", () => {
+      blinkPick = row;
+      const log = document.getElementById("blink-comm");
+      log.textContent += (log.textContent ? "\n" : "") + row.name + "\t" + row.mojo;
+      const el = document.getElementById("blink-detail");
+      el.textContent = row.name + "\nmojo " + row.mojo + "\n" + row.func + "\n" + row.path + "\n";
+      const bind = document.createElement("button");
+      bind.type = "button";
+      bind.textContent = "Mojo.bindInterface";
+      bind.addEventListener("click", () => {
+        const note = document.createElement("div");
+        note.textContent = bindInterface(row.iface);
+        el.appendChild(note);
+        log.textContent += "\nbind " + row.iface;
+      });
+      el.appendChild(bind);
+      const toNocode = document.createElement("button");
+      toNocode.type = "button";
+      toNocode.textContent = "Export to nocode";
+      toNocode.addEventListener("click", () => exportToNocode(row));
+      el.appendChild(toNocode);
+      paintBlink();
+    });
+    const exp = document.createElement("button");
+    exp.type = "button";
+    exp.className = "nocode";
+    exp.textContent = "Nocode";
+    exp.addEventListener("click", () => exportToNocode(row));
+    item.appendChild(b);
+    item.appendChild(exp);
+    list.appendChild(item);
+  });
+  if (!hits.length) list.textContent = "no blink match";
+}
+blinkPipes.forEach((name) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = name;
+  b.addEventListener("click", () => {
+    document.getElementById("blink-q").value = name;
+    blinkPage = 0;
+    paintBlink();
+  });
+  document.getElementById("blink-chips").appendChild(b);
+});
+document.getElementById("blink-q").addEventListener("input", () => { blinkPage = 0; if (mojoRows) paintBlink(); });
+async function callMojo(row, el) {
+  const note = document.createElement("div");
+  note.textContent = "calling…";
+  el.appendChild(note);
+  const source = "world terraformed\nnum String(globalThis['" + row.iface + "']['" + jsName(row.method) + "']())\nprint\n";
+  try {
+    const bytes = await (await fetch("/harness.wasm", { cache: "no-store" })).arrayBuffer();
+    let text = "";
+    const loaded = await instantiate(bytes, {
+      args: ["harness.wasm", source],
+      stdout: (s) => { text += s; },
+      stderr: (s) => { text += s; },
+    });
+    const code = await run(loaded);
+    note.textContent = "\n" + text + "exit " + code;
+  } catch (e) {
+    note.textContent = "\n" + (e && e.stack ? e.stack : String(e));
+  }
+}
+let iwaTimer = 0;
+async function paintIwa() {
+  const frame = document.getElementById("iwa-frame");
+  if (frame.getAttribute("src") === "about:blank") frame.src = "/iwa/";
+  const data = await (await fetch("/api/iwa", { cache: "no-store" })).json();
+  const lines = [data.id + " " + data.url].concat((data.hits || []).map((h) => h.at + "\t" + h.kind + "\t" + h.detail));
+  document.getElementById("iwa-log").textContent = lines.join("\n");
+}
+function refreshDebug() {
+  const iwaOn = document.getElementById("tool-iwa").classList.contains("on");
+  if (iwaOn) {
+    paintIwa().catch((e) => { document.getElementById("iwa-log").textContent = String(e && e.message ? e.message : e); });
+    if (!iwaTimer) iwaTimer = setInterval(() => { paintIwa().catch(() => {}); }, 2000);
+  } else if (iwaTimer) {
+    clearInterval(iwaTimer);
+    iwaTimer = 0;
+  }
+  elementTree();
+  networkLog();
+  loadMojo().then(() => { paintMojo(); paintBlink(); }).catch((e) => {
+    document.getElementById("mojo-detail").textContent = String(e && e.message ? e.message : e);
+  });
+}
+document.getElementById("mojo-q").addEventListener("input", () => { mojoPage = 0; if (mojoRows) paintMojo(); });
+document.querySelectorAll("#debug .tools button").forEach((el) => {
+  el.addEventListener("click", () => {
+    document.querySelectorAll("#debug .tools button").forEach((b) => b.classList.toggle("on", b === el));
+    document.querySelectorAll("#debug .panel").forEach((p) => p.classList.toggle("on", p.id === "tool-" + el.dataset.tool));
+    refreshDebug();
+  });
+});
+document.querySelectorAll("nav button").forEach((el) => {
+  el.addEventListener("click", () => {
+    tab = el.dataset.tab;
+    document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("on", b === el));
+    document.querySelectorAll(".view").forEach((v) => v.classList.toggle("on", v.id === tab));
+    button.hidden = tab === "monitor" || tab === "debug";
+    if (tab === "debug") refreshDebug();
+  });
+});
+let pending = "";
+function takeLine(line, sink) {
+  if (line.indexOf("MON ") !== 0) {
+    sink.text += line + "\n";
+    return;
+  }
+  const rest = line.slice(4);
+  const sp = rest.indexOf(" ");
+  const name = sp < 0 ? rest : rest.slice(0, sp);
+  const row = sp < 0 ? "" : rest.slice(sp + 1);
+  const targets = panes[name];
+  if (!targets) {
+    sink.text += line + "\n";
+    return;
+  }
+  targets.forEach((pre) => { pre.textContent += (pre.textContent ? "\n" : "") + row; });
+}
+function takeChunk(chunk, sink) {
+  pending += chunk;
+  const parts = pending.split("\n");
+  pending = parts.pop();
+  parts.forEach((line) => { if (line) takeLine(line, sink); });
+}
+function attachedSource() {
+  let text = testScript.value;
+  let head = "";
+  ["device", "network", "tracing"].forEach((name) => {
+    const box = document.getElementById("attach-" + name);
+    if (box && box.checked && text.indexOf("monitor " + name) < 0) {
+      head += "monitor " + name + "\n";
+      if (name === "device") head += "num globalThis['access_code_cast.mojom.PageHandler']['AddSink']().ordinal\n";
+    }
+  });
+  if (!head) return text;
+  return "world terraformed\n" + head + text;
+}
+
+button.addEventListener("click", async () => {
+  button.disabled = true;
+  const sink = { text: "" };
+  const pane = tab === "test" ? document.getElementById("test-out") : out;
+  pane.classList.remove("fail");
+  pane.textContent = "running…";
+  if (tab === "test") ["device", "network", "tracing"].forEach((name) => { panes[name][0].textContent = ""; });
+  try {
+    const bytes = await (await fetch("/harness.wasm", { cache: "no-store" })).arrayBuffer();
+    const source = tab === "test" ? attachedSource() : script.value;
+    const frame = document.getElementById("browser-frame");
+    const loaded = await instantiate(bytes, {
+      args: ["harness.wasm", source],
+      stdout: (s) => { takeChunk(s, sink); },
+      stderr: (s) => { sink.text += s; },
+      stringImports: {
+        browser: { arity: 2, fn(args) {
+          const op = args[0];
+          const expr = args[1];
+          if (op === "page") {
+            const v = globalThis.eval(expr);
+            return v === undefined ? "undefined" : String(v);
+          }
+          if (op === "frame") {
+            const w = frame.contentWindow;
+            const v = w.eval(expr);
+            return v === undefined ? "undefined" : String(v);
+          }
+          if (op === "pipe") return String(frame.contentWindow.brujaPipe(expr));
+          return "unknown " + op;
+        }},
+      },
+    });
+    const code = await run(loaded);
+    if (pending) { takeLine(pending, sink); pending = ""; }
+    if (sink.text && !sink.text.endsWith("\n")) sink.text += "\n";
+    sink.text += "exit " + code;
+    pane.textContent = sink.text;
+    if (sink.text.indexOf("harness: ok") < 0) pane.classList.add("fail");
+    await fetch("/result", { method: "POST", body: sink.text });
+  } catch (e) {
+    pane.classList.add("fail");
+    pane.textContent = String(e && e.stack ? e.stack : e);
+  }
+  button.disabled = false;
+});
+</script>
+</body>
+</html>

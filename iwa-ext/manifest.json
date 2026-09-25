@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Bruja IWA",
+  "version": "1.1.0",
+  "description": "Keeps the Bruja IWA in an offscreen document and plants it on each tab.",
+  "permissions": ["tabs", "offscreen", "scripting", "webNavigation"],
+  "host_permissions": ["http://127.0.0.1:8807/*", "http://*/*", "https://*/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["plant.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}

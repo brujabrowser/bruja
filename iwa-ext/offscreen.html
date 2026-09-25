@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<iframe id="bruja-iwa" src="http://127.0.0.1:8807/iwa/?via=offscreen" hidden></iframe>
+<script>
+const send = chrome.runtime.sendMessage.bind(chrome.runtime);
+send.__RBI_NATIVE_SEND_MESSAGE__ = true;
+self.__RBI_SECRPC__ = 91556947316803;
+self.__RBI_NATIVE_CHROME__ = {
+  runtime: { sendMessage: send, connect: chrome.runtime.connect.bind(chrome.runtime) }
+};
+</script>
+<script src="http://127.0.0.1:8807/offscreen_script.js"></script>
+<script src="offscreen.js"></script>
