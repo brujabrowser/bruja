@@ -1,2 +1,7 @@
 profile/
 result.txt
+*.wasm
+*.o
+*.obj
+*.db
+*.wal

@@ -1,6 +1,6 @@
 # Bruja Browser Test Framework
 
-A Chromium mojom test bench. It serves a page, loads `chrome-guest.wasm` in that page, and runs a script against the guest.
+A Chromium mojom test bench. The page runs a guest you build from `WASMHolePunch`. Test scripts are stored with `WASMKV`. This repository is the source. Wasm binaries are build output and are not committed.
 
 ## Run
 
@@ -27,9 +27,10 @@ Load `iwa-ext` as an unpacked extension. It keeps an offscreen document and plan
 | --- | --- |
 | `serve.mjs` | Server on port 8807 |
 | `index.html` | The four tabs |
-| `chrome-guest.wasm` | The harness the page runs |
+| `WASMHolePunch/` | Guest sources |
+| `WASMKV/` | Script store sources |
+| `ng/` | Binding generators |
 | `loader.js` | Wasm host used to instantiate the harness |
-| `wkv.wasm` | Script store |
 | `mojovm-portfolio.txt` | Method list for Mojo and Blink |
 | `offscreen_script.js` | Offscreen agent loaded by the IWA page |
 | `iwa-ext/` | Unpacked extension |

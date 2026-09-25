@@ -1,0 +1,16 @@
+/build-native/
+/build-wasm/
+CMakeCache.txt
+CMakeFiles/
+*.obj
+*.o
+*.a
+*.exe
+*.wasm
+Testing/
+.ninja_deps
+.ninja_log
+compile_commands.json
+*.db
+*.wal
+*.idx
