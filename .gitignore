@@ -1,6 +1,8 @@
 profile/
 result.txt
 *.wasm
+__pycache__/
+*.pyc
 *.o
 *.obj
 *.db
