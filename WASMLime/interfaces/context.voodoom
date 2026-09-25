@@ -1,0 +1,15 @@
+// Occupancy Context. CreateFrame binds lime.Frame (Blinker LocalFrameImpl).
+// Intern: interface:lime.Context. CookieManager/devtools omitted.
+module lime;
+
+import "frame.voodoom";
+
+struct CreateFrameParams {
+  bool enable_remote_debugging;
+  string debug_name;
+};
+
+interface Context {
+  CreateFrame(pending_associated_receiver<Frame> frame);
+  CreateFrameWithParams(CreateFrameParams params, pending_associated_receiver<Frame> frame);
+};

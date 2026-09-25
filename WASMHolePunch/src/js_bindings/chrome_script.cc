@@ -199,6 +199,22 @@ int RunLines(std::istream& in, const std::string& path) {
       last = guest.RunString(frame, "String(MojoVM.count)");
     } else if (cmd == "lookup") {
       last = guest.RunString(frame, ("JSON.stringify(MojoVM.lookup('" + arg + "'))").c_str());
+    } else if (cmd == "handler") {
+      auto dot = arg.rfind('.');
+      if (dot == std::string::npos || dot == 0 || dot + 1 >= arg.size()) {
+        last = "";
+      } else {
+        std::string iface = arg.substr(0, dot);
+        std::string method = arg.substr(dot + 1);
+        std::string js = method;
+        if (!js.empty() && js[0] >= 'A' && js[0] <= 'Z') js[0] = static_cast<char>(js[0] - 'A' + 'a');
+        std::string src =
+            "(function(){var o=globalThis['" + iface + "'];if(!o)return '';"
+            "var fn=o['" + method + "']||o['" + js + "'];if(!fn)return '';"
+            "var r=fn();if(r&&typeof r==='object'&&r.ordinal!=null)return String(r.ordinal);"
+            "return String(r);})()";
+        last = guest.RunString(frame, src.c_str());
+      }
     } else if (cmd == "call") {
       last = guest.RunString(frame, ("MojoVM.call('" + arg + "')").c_str());
     } else if (cmd == "targets") {

@@ -1,0 +1,101 @@
+// Occupancy Frame for the Chromium-free process (lime::Main analog of
+// fuchsia_web/webengine). Methods that have a real backing call
+// WASMBlinker LocalFrameImpl (HandleClick/HandleKey/Eval/LoadHTML/LoadGML)
+// and WASMWin32 FrameWindow on wasigocvm. Intern: interface:lime.Frame.
+// GPU/media CreateView* cousins stay absent rather than dead stubs.
+module lime;
+
+import "navigation.voodoom";
+
+enum ConsoleLogLevel {
+  NONE,
+  DEBUG,
+  INFO,
+  WARN,
+  ERROR,
+};
+
+enum AllowInputState {
+  ALLOW,
+  DENY,
+};
+
+// WASMLime extension, not present in real fuchsia.web: notified when a
+// real mouse click inside this Frame's CreateView2 window hits an element
+// carrying a "gk-click" attribute (see blink::LocalFrame::HandleClick and
+// WASMv16/src/browser_main.cc) -- the app-level owner registers one via
+// Frame.SetFrameClickListener to react to real, on-screen clicks without
+// polling.
+interface FrameClickListener {
+  OnGkClick(string value) => ();
+};
+
+interface Frame {
+  // WASMLime extension: forwards a real (window-relative pixel) click
+  // through to blink::LocalFrame::HandleClick's real layout hit-test.
+  // FrameWindow (this Frame's own CreateView2 window) calls this itself
+  // on WM_LBUTTONUP and notifies any registered FrameClickListener --
+  // most callers won't need to call this directly.
+  HandleClick(uint32 x, uint32 y) => (bool hit, string gk_click, string error);
+
+  // WASMLime extension: forwards a key to blink::LocalFrame::HandleKey.
+  // FrameWindow calls this on WM_CHAR / WM_KEYDOWN. gk_event is a click-
+  // shaped command (newtab, go\\x1furl, …) when the key was an accelerator
+  // or an input submit — FrameWindow posts it through FrameClickListener.
+  HandleKey(uint32 vk, uint32 mods, string text) => (bool handled, string gk_event, string value, string error);
+
+  // WASMLime extension: registers (replacing any existing) listener for
+  // this Frame's own real mouse clicks -- see FrameClickListener above.
+  SetFrameClickListener(pending_associated_remote<FrameClickListener> listener);
+
+  // Real: binds a NavigationControllerImpl driving this Frame's shared
+  // blink::LocalFrame.
+  GetNavigationController(pending_associated_receiver<NavigationController> controller);
+
+  // Real: unregisters any existing listener if not currently bound (bare
+  // pending_associated_remote is never legal null here -- see WASMLime's
+  // frame_impl.cc for the "already set" replace semantics).
+  SetNavigationEventListener(pending_associated_remote<NavigationEventListener> listener);
+
+  // Real: runs against the frame's live blink::LocalFrame::Eval.
+  ExecuteJavaScript(string js) => (bool ok, string result_json, string error);
+  ExecuteJavaScriptNoResult(string js) => (bool ok, string error);
+
+  // WASMLime extension, not present in real fuchsia.web: loads already-
+  // rendered HTML directly (blink::LocalFrame::LoadHTML). HTTP pages and
+  // other raw markup use this. GML chrome/about use LoadGml.
+  LoadHtml(string html) => (bool ok, string error);
+
+  // GuiKit GML → this Frame's blink document (LocalFrame.LoadGML). GML and
+  // Blinker are one stack here: Bruja passes source + GS state, not HTML.
+  LoadGml(string gml, string data_json) => (bool ok, string error);
+
+  // Real: opens this Frame's compositor window (see frame_window.h),
+  // repainting from CaptureSnapshot. Top-level overlapped window — used
+  // by demos. Bruja Browser uses CreateChildView so tabs live inside one
+  // host HWND instead of one top-level window per tab.
+  CreateView2();
+
+  // WASMLime extension: same compositor as CreateView2, but as a WS_CHILD
+  // of `parent` (a native HWND packed in uint64). Bounds are in the
+  // parent's client space.
+  CreateChildView(uint64 parent, int32 x, int32 y, int32 width, int32 height);
+  SetViewBounds(int32 x, int32 y, int32 width, int32 height);
+  SetViewVisible(bool visible);
+  GetViewHandle() => (uint64 hwnd);
+
+  // Real bookkeeping (stored state, queryable, not yet driving any real
+  // renderer/network hook -- see README's Known Simplifications).
+  SetJavaScriptLogLevel(ConsoleLogLevel level);
+  SetPermissionState(int32 permission_type, string web_origin, bool granted);
+  ConfigureInputTypes(uint64 types, AllowInputState allow);
+  SetContentAreaSettings(bool hide_scrollbars, double page_scale);
+  ResetContentAreaSettings();
+  AddBeforeLoadJavaScript(uint64 script_id, array<string> origins, string script) => (bool ok, string error);
+  RemoveBeforeLoadJavaScript(uint64 script_id);
+  PostMessage(string target_origin, string data) => (bool ok, string error);
+
+  // Real: closes this Frame's NavigationController/window and detaches it
+  // from its owning Context.
+  Close();
+};

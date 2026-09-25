@@ -79,6 +79,10 @@
 <div id="develop" class="view on">
   <aside>
     <div class="gen">
+      <label>Scripts</label>
+      <input id="develop-name" value="page surface" />
+      <button type="button" id="develop-save">Save</button>
+      <div id="develop-list"></div>
       <label>Nocode</label>
       <button type="button" data-block="loadtimes">chrome.loadTimes</button>
       <button type="button" data-block="csi">chrome.csi</button>
@@ -717,36 +721,55 @@ async function library() {
   }
   return lib;
 }
-async function paintLibrary() {
-  const box = document.getElementById("script-list");
-  const lib = await library();
+function paintOneList(box, nameId, editor, lib) {
   box.innerHTML = "";
   Object.keys(lib).forEach((name) => {
     const b = document.createElement("button");
     b.type = "button";
     b.textContent = name;
     b.addEventListener("click", () => {
-      document.getElementById("script-name").value = name;
-      testScript.value = lib[name];
+      document.getElementById(nameId).value = name;
+      editor.value = lib[name];
     });
     box.appendChild(b);
   });
 }
-async function saveScript() {
-  const name = document.getElementById("script-name").value.trim() || "untitled";
+async function paintLibrary() {
+  const lib = await library();
+  paintOneList(document.getElementById("script-list"), "script-name", testScript, lib);
+  paintOneList(document.getElementById("develop-list"), "develop-name", script, lib);
+}
+async function storeScript(name, body) {
   const key = scriptKey(name);
-  await wkvExec("SET 1 " + key + " " + testScript.value);
+  await wkvExec("SET 1 " + key + " " + body);
   const raw = await wkvExec("GET 1 __names");
   const names = !raw || raw === "(nil)" ? [] : raw.split("\n").filter(Boolean);
   if (names.indexOf(key) < 0) names.push(key);
   await wkvExec("SET 1 __names " + names.join("\n"));
   await paintLibrary();
 }
+async function saveScript() {
+  const name = document.getElementById("script-name").value.trim() || "untitled";
+  await storeScript(name, testScript.value);
+}
+async function saveDevelop() {
+  const name = document.getElementById("develop-name").value.trim() || "untitled";
+  await storeScript(name, script.value);
+}
 if (!testScript.value) testScript.value = script.value;
 saveScript().catch((e) => {
   document.getElementById("script-list").textContent = String(e && e.message ? e.message : e);
 });
-document.getElementById("save-script").addEventListener("click", saveScript);
+document.getElementById("save-script").addEventListener("click", () => {
+  saveScript().catch((e) => {
+    document.getElementById("script-list").textContent = String(e && e.message ? e.message : e);
+  });
+});
+document.getElementById("develop-save").addEventListener("click", () => {
+  saveDevelop().catch((e) => {
+    document.getElementById("develop-list").textContent = String(e && e.message ? e.message : e);
+  });
+});
 const consoleLog = document.getElementById("console-log");
 function consoleLine(kind, text) {
   consoleLog.textContent += (consoleLog.textContent ? "\n" : "") + kind + " " + text;

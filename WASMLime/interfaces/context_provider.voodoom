@@ -1,0 +1,15 @@
+// Occupancy ContextProvider. Create() mints an in-process ContextImpl
+// (wasigocvm does not spawn a host OS process per context). Intern:
+// interface:lime.ContextProvider.
+module lime;
+
+import "context.voodoom";
+
+struct CreateContextParams {
+  array<string> cors_exempt_headers;
+  uint16 remote_debugging_port;
+};
+
+interface ContextProvider {
+  Create(CreateContextParams params, pending_associated_receiver<Context> context);
+};

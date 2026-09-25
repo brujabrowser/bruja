@@ -1,0 +1,73 @@
+// Occupancy subset of published chromium/src
+// third_party/blink/public/mojom/frame/frame.mojom (blink.mojom.LocalFrame).
+// Full published LocalFrame is hundreds of methods; this file is the
+// Navigate/LoadHTML/Eval/paint hop LocalFrameImpl actually occupies.
+// Intern (voodoomc): interface:blink.LocalFrame. C++ namespace stays
+// blink so LocalFrameImpl is unchanged. Not a second HTML engine --
+// LocalFrameImpl in this repo is the implementation.
+module blink;
+
+interface LocalFrame {
+  Navigate(string url) => (bool ok, string title, uint32 width, uint32 height, string error);
+
+  // PNG bytes for this frame's last Navigate()/LoadHTML() (see
+  // LocalFrameImpl::CaptureSnapshot -- blink/paint.h via WASMSkia+WASMRasta).
+  // Mojo's `string` wire format is a raw length-prefixed byte buffer (see
+  // WASMCadidumBindings/examples/echo/echo_interface.h's WriteString/
+  // ReadString), so png_data carries binary PNG bytes verbatim -- no
+  // base64 needed on this leg.
+  CaptureSnapshot() => (bool ok, string png_data, string error);
+
+  // Loads raw HTML directly into this frame (no fetch) -- same parse,
+  // classic <script> execution, layout, and paint Navigate() gets, just
+  // skipping the network leg. Mirrors Navigate()'s response shape.
+  LoadHTML(string html) => (bool ok, string title, uint32 width, uint32 height, string error);
+
+  // Evaluates JS against this frame's live quickjs-ng engine. result_json
+  // is JSON.stringify of the expression result; empty string for a JS
+  // `undefined` result. Callers needing the DOM/paint to reflect side
+  // effects should follow up with CaptureSnapshot()/CaptureFrame().
+  Eval(string js) => (bool ok, string result_json, string error);
+
+  // The real live-rendering path for a window that repaints on every
+  // state change (see lime::FrameWindow): raw RGBA8888 pixels, real block
+  // layout (blink/layout.h), no PNG encode on this end and critically no
+  // decode on the caller's end either -- CaptureSnapshot above still
+  // exists for one-off "take a picture of this page" callers, but a live
+  // window blitting a freshly-decoded PNG on every repaint was doing a
+  // pointless encode/decode round trip of its own most recent frame.
+  CaptureFrame() => (bool ok, string rgba, uint32 width, uint32 height, string error);
+
+  // Real block-layout hit-testing (blink/layout.h's HitTestLayout) against
+  // the last Navigate()/LoadHTML() document, at the same fixed viewport
+  // width CaptureFrame paints at. Walks up from the hit element looking
+  // for a "gk-click" attribute (guikit's own click-binding convention,
+  // see WASMv16/src/browser_main.cc) and returns its value if found --
+  // this is the one native click convention this stack understands today,
+  // not a general DOM event-dispatch mechanism (real addEventListener-
+  // driven dispatch is still future work, see ARCHITECTURE.md).
+  HandleClick(uint32 x, uint32 y) => (bool hit, string gk_click, string error);
+
+  // Keyboard: `vk` is a Win32 virtual-key (VK_BACK/VK_RETURN/…) or 0 when
+  // `text` carries a printable UTF-8 character. `mods` bits: 1=alt, 2=ctrl,
+  // 4=shift. Types into the focused <input>/<textarea> (set by HandleClick).
+  // Ctrl/Alt accelerators (T/W/L/R/D, Alt+Left/Right) return a gk_event
+  // the embedder already understands (newtab/reload/…). Enter on a field
+  // with gk-submit (or id=url) returns "event\\x1fvalue".
+  HandleKey(uint32 vk, uint32 mods, string text) => (bool handled, string gk_event, string value, string error);
+
+  // Mouse wheel at viewport client coordinates (same space as HandleClick).
+  // Scrolls the deepest `overflow:auto|scroll` container under (x, y), or
+  // the document viewport when none applies. Positive delta_y scrolls down.
+  HandleWheel(uint32 x, uint32 y, int32 delta_x, int32 delta_y) => (bool handled, string error);
+
+  // Live window size. CaptureFrame/HandleClick/paint use this instead of the
+  // old fixed 1024×768 placeholder so the frame reflows with the HWND.
+  SetViewport(uint32 width, uint32 height);
+
+  // GuiKit GML front-end for this frame. GML is the authoring tree for
+  // chrome/about pages; Blinker lowers it (rule()/templates) and commits
+  // the same blink::HtmlDocument layout/paint uses for LoadHTML. HTTP
+  // navigation still uses Navigate()/LoadHTML. Requires sibling guikit/cpp.
+  LoadGML(string gml, string data_json) => (bool ok, string title, uint32 width, uint32 height, string error);
+};
